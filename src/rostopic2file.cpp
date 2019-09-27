@@ -5,6 +5,8 @@
 
 using namespace std;
 
+string PATH_TO_FILES = "/home/pcams/Desktop/output/";
+
 void imageCallback (const sensor_msgs::Image::ConstPtr& msg) {
   int sec = msg->header.stamp.sec;
   int nsec = msg->header.stamp.nsec;
@@ -16,20 +18,21 @@ void imageCallback (const sensor_msgs::Image::ConstPtr& msg) {
   filename_stream << "img_" << sec << "_" << nsec << ".pgm";
   string filename = filename_stream.str();
 
-  ofstream image_file(filename);
+  ofstream image_file(PATH_TO_FILES + filename);
   if (image_file.is_open()) {
     image_file << "P2\n";
     image_file << image_width << " " << image_height << "\n";
     image_file << "255\n";
-
+    
     for (int i = 0; i < image_height; i++) {
       for (int j = 0; j < image_width; j++) {
-	image_file << msg->data[i * image_width + j] << " ";
+        int val = msg->data[i * image_width + j];
+	image_file << val << " ";
       }
       image_file << "\n";
     }
     image_file.close();
-    ROS_INFO("Saved %s", filename);
+    ROS_ERROR("Saved %s", filename.c_str());
   } else {
     ROS_ERROR("ERROR: Writing image file failed!");
   }
@@ -37,10 +40,10 @@ void imageCallback (const sensor_msgs::Image::ConstPtr& msg) {
 }
 
 int main (int argc, char **argv) {
-  ros::init(argc, argv, "rostopic2fie");
+  ros::init(argc, argv, "rostopic2file");
   ros::NodeHandle nh;
   
   ros::Subscriber image_sub = nh.subscribe("/camera/image_raw", 1, imageCallback);
-  ros::spinOnce();
+  ros::spin();
   return 0;
 }
