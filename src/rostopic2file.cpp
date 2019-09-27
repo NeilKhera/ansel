@@ -2,48 +2,58 @@
 #include <fstream>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <rostopic2file/Rostopic2File.h>
 
 using namespace std;
 
-string PATH_TO_FILES = "/home/pcams/Desktop/output/";
+bool saveImage (rostopic2file::Rostopic2File::Request &req, rostopic2file::Rostopic2File::Response &res) {
+  string rostopic = req.rostopic;
+  string filepath = req.filepath;
 
-void imageCallback (const sensor_msgs::Image::ConstPtr& msg) {
-  int sec = msg->header.stamp.sec;
-  int nsec = msg->header.stamp.nsec;
+  ros::Duration timeout(5.0);
+  sensor_msgs::Image::ConstPtr msg = ros::topic::waitForMessage<sensor_msgs::Image>(rostopic, timeout);
 
-  int image_width = msg->width;
-  int image_height = msg->height;
+  if (msg != NULL) {
+    int sec = msg->header.stamp.sec;
+    int nsec = msg->header.stamp.nsec;
 
-  stringstream filename_stream;
-  filename_stream << "img_" << sec << "_" << nsec << ".pgm";
-  string filename = filename_stream.str();
+    int image_width = msg->width;
+    int image_height = msg->height;
 
-  ofstream image_file(PATH_TO_FILES + filename);
-  if (image_file.is_open()) {
-    image_file << "P2\n";
-    image_file << image_width << " " << image_height << "\n";
-    image_file << "255\n";
+    stringstream filename_stream;
+    filename_stream << "img_" << sec << "_" << nsec << ".pgm";
+    string filename = filename_stream.str();
+
+    ofstream image_file((filepath + "/" + filename).c_str());
+    if (image_file.is_open()) {
+      image_file << "P2\n";
+      image_file << image_width << " " << image_height << "\n";
+      image_file << "255\n";
     
-    for (int i = 0; i < image_height; i++) {
-      for (int j = 0; j < image_width; j++) {
-        int val = msg->data[i * image_width + j];
-	image_file << val << " ";
+      for (int i = 0; i < image_height; i++) {
+        for (int j = 0; j < image_width; j++) {
+          int val = msg->data[i * image_width + j];
+	  image_file << val << " ";
+        }
+        image_file << "\n";
       }
-      image_file << "\n";
+      image_file.close();
+      ROS_INFO("Saved %s", filename.c_str());
+      return true;
+    } else {
+      res.info = "ERROR: Writing image file failed!";
     }
-    image_file.close();
-    ROS_ERROR("Saved %s", filename.c_str());
   } else {
-    ROS_ERROR("ERROR: Writing image file failed!");
+    res.info = "ERROR: No messages received in 5 seconds. Timeout!";
   }
-  ros::shutdown();
+  return false;
 }
 
 int main (int argc, char **argv) {
   ros::init(argc, argv, "rostopic2file");
   ros::NodeHandle nh;
   
-  ros::Subscriber image_sub = nh.subscribe("/camera/image_raw", 1, imageCallback);
+  ros::ServiceServer image_service = nh.advertiseService("rostopic2file", saveImage);
   ros::spin();
   return 0;
 }
