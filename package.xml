@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>rostopic2file</name>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <description>ROS Service that, on request, saves a sensor_msgs::Image ROS topic frame as a RAW file.</description>
 
   <maintainer email="nkhera@andrew.cmu.edu">Neil Khera</maintainer>
@@ -22,7 +22,4 @@
   <exec_depend>rospy</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>message_runtime</exec_depend>
-
-  <export>
-  </export>
 </package>
