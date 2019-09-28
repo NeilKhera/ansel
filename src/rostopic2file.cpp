@@ -1,6 +1,10 @@
-#include <iostream>
-#include <fstream>
+/*#include <iostream>
+#include <fstream>*/
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
 #include <ros/ros.h>
+#include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/Image.h>
 #include <rostopic2file/Rostopic2File.h>
 
@@ -21,10 +25,10 @@ bool saveImage (rostopic2file::Rostopic2File::Request &req, rostopic2file::Rosto
     int image_height = msg->height;
 
     stringstream filename_stream;
-    filename_stream << "img_" << sec << "_" << nsec << ".pgm";
+    filename_stream << "img_" << sec << "_" << nsec << ".png";
     string filename = filename_stream.str();
 
-    ofstream image_file((filepath + "/" + filename).c_str());
+  /*ofstream image_file((filepath + "/" + filename).c_str());
     if (image_file.is_open()) {
       image_file << "P2\n";
       image_file << image_width << " " << image_height << "\n";
@@ -37,15 +41,24 @@ bool saveImage (rostopic2file::Rostopic2File::Request &req, rostopic2file::Rosto
         }
         image_file << "\n";
       }
-      image_file.close();
-      ROS_INFO("Saved %s", filename.c_str());
-      return true;
-    } else {
-      res.info = "ERROR: Writing image file failed!";
+      image_file.close();*/
+
+    cv::Mat image;
+    try {
+      image = cv_bridge::toCvShare(msg, msg->encoding)->image;
+    } catch (cv_bridge::Exception) {
+      res.info = "Writing image file failed!";
+      return false;
     }
-  } else {
-    res.info = "ERROR: No messages received in 5 seconds. Timeout!";
+
+    cv::imwrite(filepath + filename, image);
+    ROS_INFO("Saved %s", filename.c_str());
+    return true;
+    /*} else {
+      res.info = "Writing image file failed!";
+    }*/
   }
+  res.info = "No messages received in 5 seconds. Timeout!";
   return false;
 }
 
