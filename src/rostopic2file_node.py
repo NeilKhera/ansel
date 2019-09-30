@@ -15,16 +15,15 @@ class rostopic2file:
         print("Ready to save images...")
 
     def saveImage(self, req):
+        self.client.update_configuration({'gain_auto': 'Off', 'exposure_auto': 'Continuous', 'exposure_auto_alg': 'Mean', 'exposure_auto_max': '500000'})
         rostopic = req.rostopic
         filepath = req.filepath
         rospy.loginfo("Request to save %s received. Saving at %s.", rostopic, filepath)
 
         for i in range(11):
             rospy.loginfo("Saving image %d...", i)
-            self.client.update_configuration({'exposure_auto': 'Off'})
             self.client.update_configuration({'exposure_auto_target': (i * 10)})
-            self.client.update_configuration({'exposure_auto': 'Once'})
-            rospy.sleep(3)
+            rospy.sleep(5)
 
             try:
                 msg = rospy.wait_for_message(rostopic, Image, 5.0)
@@ -42,7 +41,7 @@ class rostopic2file:
             except rospy.exceptions.ROSException:
                 return Rostopic2FileResponse("Error! No messages received in 5 seconds. Timeout!")
         
-        return Rostopic2FileResponse("Saved 10 files at %s.", filepath)
+        return Rostopic2FileResponse("Saved 10 files at" + filepath + ".")
 
 def init():
     rf = rostopic2file()

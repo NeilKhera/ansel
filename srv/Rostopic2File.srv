@@ -1,4 +1,7 @@
 string rostopic
 string filepath
+uint8 image_count
+uint8 grey_value
+bool hdr
 ---
 string info
