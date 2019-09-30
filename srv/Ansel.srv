@@ -1,7 +1,8 @@
 string rostopic
 string filepath
 uint8 image_count
-uint8 grey_value
+uint8 step_size
+uint8 base_grey
 bool hdr
 ---
 string info
