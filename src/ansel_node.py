@@ -1,10 +1,11 @@
 #!/usr/bin/env python
+import datetime
 import cv2
 import rospy
 import dynamic_reconfigure.client
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from Ansel.srv import Ansel, AnselResponse
+from ansel.srv import Ansel, AnselResponse
 
 class ansel:
 
@@ -20,10 +21,19 @@ class ansel:
         filepath = req.filepath
         rospy.loginfo("Request to save %s received. Saving at %s.", rostopic, filepath)
 
-        for i in range(11):
+        if ((req.image_count - 1) * req.step_size + req.base_grey > 100):
+            return AnselResponse("ERROR! Invalid Parameters!")
+
+        image_arr = []
+        time_arr = []
+        old_grey = 0
+        time = 1.00
+
+        for i in range(req.image_count):
             rospy.loginfo("Saving image %d...", i)
-            self.client.update_configuration({'exposure_auto_target': (i * 10)})
-            rospy.sleep(5)
+            new_grey = ((i * req.step_size) + req.base_grey)
+            self.client.update_configuration({'exposure_auto_target': new_grey})
+            rospy.sleep(3)
 
             try:
                 msg = rospy.wait_for_message(rostopic, Image, 5.0)
@@ -31,17 +41,38 @@ class ansel:
                 nsec = msg.header.stamp.nsecs
                 filename = "img_" + str(i) + "_" + str(sec) + "_" + str(nsec) + ".png"
 
+                if i != 0:
+                    time = time * pow(2, (new_grey - old_grey) / 10)
+                time_arr.append(time)
+                old_grey = new_grey
+
                 try:
                     image = self.bridge.imgmsg_to_cv2(msg, msg.encoding)
                 except CvBridgeError:
                     return AnselResponse("ERROR! Writing image file failed!")
 
-                cv2.imwrite(filepath + '/' + filename, image)
+                image_arr.append(image)
+
+                cv2.imwrite(filepath + "/" + filename, image)
                 rospy.loginfo("%s saved succesfully.", filename)
             except rospy.exceptions.ROSException:
                 return AnselResponse("Error! No messages received in 5 seconds. Timeout!")
         
-        return AnselResponse("Saved 10 files at" + filepath + ".")
+        if (req.hdr):
+            alignMTB = cv2.createAlignMTB()
+            alignMTB.process(image_arr, image_arr)
+
+            calibrateDebevec = cv2.createCalibrateDebevec()
+            responseDebevec = calibrateDebevec.process(images, times)
+
+            mergeDebevec = cv2.createMergeDebevec()
+            hdrDebevec = mergeDebevec.process(images, times, responseDebevec)
+            
+            DT = datetime.datetime.now()
+            cv2.imwrite(filepath + "/" + "img_" + DT.second + "_" + DT.microsecond + ".hdr", hdrDebevec)
+            return AnselResponse("Saved " + str(req.image_count) + " images and an HDR image at " + filepath + ".")
+
+        return AnselResponse("Saved " + str(req.image_count) + " images at " + filepath + ".")
 
 def init():
     rf = ansel()
