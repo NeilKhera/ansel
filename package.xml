@@ -2,7 +2,7 @@
 <package format="2">
   <name>ansel</name>
   <version>1.1.0</version>
-  <description>ROS Service that produces an HDR .png from a sensor_msgs::Image ROStopic</description>
+  <description>ROS Service that produces an HDR image from a sensor_msgs::Image ROStopic</description>
 
   <maintainer email="nkhera@andrew.cmu.edu">Neil Khera</maintainer>
   <license>BSD</license>
